@@ -6,6 +6,9 @@ const muteButton = document.getElementById("muteButton");
 const bgmToggleButton = document.getElementById("bgmToggleButton");
 const bgmVolumeSlider = document.getElementById("bgmVolumeSlider");
 const bgmVolumeValue = document.getElementById("bgmVolumeValue");
+const multiplayerRoomInput = document.getElementById("multiplayerRoomInput");
+const multiplayerToggleButton = document.getElementById("multiplayerToggleButton");
+const multiplayerStatus = document.getElementById("multiplayerStatus");
 const difficultySelect = document.getElementById("difficultySelect");
 const screenModeSelect = document.getElementById("screenModeSelect");
 const controlModeSelect = document.getElementById("controlModeSelect");
@@ -75,6 +78,8 @@ const ACCOUNT_KEY = "starling-sprint-accounts-v1";
 const CURRENT_ACCOUNT_KEY = "starling-sprint-current-account-v1";
 const LANGUAGE_KEY = "starling-sprint-language-v1";
 const BGM_SETTINGS_KEY = "starling-sprint-bgm-settings-v1";
+const MULTIPLAYER_CLIENT_KEY = "starling-sprint-multiplayer-client-v1";
+const MULTIPLAYER_ROOM_KEY = "starling-sprint-multiplayer-room-v1";
 const BETA_REWARDS_ACTIVE = true;
 const STARLING_JUMP_MULTIPLIER = 1.12;
 const MAX_MONSTER_SPAWNS = 14;
@@ -470,6 +475,8 @@ const STRINGS = {
     play_copy: "Start the selected stage with your current settings.",
     play_button: "Play",
     shop_button: "Shop",
+    multiplayer_title: "Play Together",
+    multiplayer_room_label: "Room",
     stage_select_title: "Stage Select",
     stage_label: "Stage",
     settings_title: "Settings",
@@ -733,6 +740,8 @@ const STRINGS = {
     play_copy: "현재 설정으로 선택한 스테이지를 시작합니다.",
     play_button: "플레이",
     shop_button: "상점",
+    multiplayer_title: "같이 플레이",
+    multiplayer_room_label: "방",
     stage_select_title: "스테이지 선택",
     stage_label: "스테이지",
     settings_title: "설정",
@@ -994,6 +1003,14 @@ const audioState = {
   },
 };
 const bgmState = loadBgmSettings();
+const multiplayerState = {
+  clientId: loadMultiplayerClientId(),
+  socket: null,
+  room: localStorage.getItem(MULTIPLAYER_ROOM_KEY) || "starling",
+  peers: new Map(),
+  sendTimer: 0,
+  status: "offline",
+};
 
 const camera = { x: 0 };
 const authMessageState = {
@@ -1987,6 +2004,165 @@ function applyBgmSettings() {
   }
 }
 
+function loadMultiplayerClientId() {
+  let clientId = localStorage.getItem(MULTIPLAYER_CLIENT_KEY);
+  if (!clientId) {
+    clientId = `p${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+    localStorage.setItem(MULTIPLAYER_CLIENT_KEY, clientId);
+  }
+  return clientId;
+}
+
+function sanitizeRoomName(value) {
+  return String(value || "starling").trim().slice(0, 20).replace(/[^\w가-힣-]/g, "") || "starling";
+}
+
+function multiplayerServerUrl() {
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${protocol}//${window.location.host}`;
+}
+
+function setMultiplayerStatus(status, detail = "") {
+  multiplayerState.status = status;
+  if (multiplayerToggleButton) {
+    const online = status === "online";
+    multiplayerToggleButton.textContent = currentLanguage === "ko"
+      ? `Online: ${online ? "켜짐" : "꺼짐"}`
+      : `Online: ${online ? "On" : "Off"}`;
+    multiplayerToggleButton.setAttribute("aria-pressed", String(online));
+  }
+  if (multiplayerStatus) {
+    const count = multiplayerState.peers.size;
+    const label = currentLanguage === "ko"
+      ? status === "online"
+        ? `온라인 | 방 ${multiplayerState.room} | 친구 ${count}명`
+        : status === "connecting"
+          ? "연결 중..."
+          : detail || "오프라인"
+      : status === "online"
+        ? `Online | Room ${multiplayerState.room} | Friends ${count}`
+        : status === "connecting"
+          ? "Connecting..."
+          : detail || "Offline";
+    multiplayerStatus.textContent = label;
+  }
+}
+
+function sendMultiplayerMessage(message) {
+  if (!multiplayerState.socket || multiplayerState.socket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+  multiplayerState.socket.send(JSON.stringify(message));
+}
+
+function disconnectMultiplayer(detail = "") {
+  if (multiplayerState.socket) {
+    multiplayerState.socket.onclose = null;
+    multiplayerState.socket.close();
+    multiplayerState.socket = null;
+  }
+  multiplayerState.peers.clear();
+  setMultiplayerStatus("offline", detail);
+}
+
+function connectMultiplayer() {
+  if (!("WebSocket" in window)) {
+    setMultiplayerStatus("offline", "WebSocket unsupported");
+    return;
+  }
+  if (multiplayerState.socket) {
+    disconnectMultiplayer();
+    return;
+  }
+  multiplayerState.room = sanitizeRoomName(multiplayerRoomInput?.value || multiplayerState.room);
+  localStorage.setItem(MULTIPLAYER_ROOM_KEY, multiplayerState.room);
+  if (multiplayerRoomInput) {
+    multiplayerRoomInput.value = multiplayerState.room;
+  }
+  setMultiplayerStatus("connecting");
+  const socket = new WebSocket(multiplayerServerUrl());
+  multiplayerState.socket = socket;
+
+  socket.addEventListener("open", () => {
+    sendMultiplayerMessage({
+      type: "join",
+      clientId: multiplayerState.clientId,
+      room: multiplayerState.room,
+      name: accountState.currentNickname || "Player",
+    });
+    setMultiplayerStatus("online");
+  });
+
+  socket.addEventListener("message", (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (_) {
+      return;
+    }
+    if (message.clientId === multiplayerState.clientId) {
+      return;
+    }
+    if (message.type === "peerLeft") {
+      multiplayerState.peers.delete(message.clientId);
+      setMultiplayerStatus(multiplayerState.socket ? "online" : "offline");
+      return;
+    }
+    if (message.type === "state" && message.player) {
+      multiplayerState.peers.set(message.clientId, {
+        ...message.player,
+        updatedAt: performance.now(),
+      });
+      setMultiplayerStatus("online");
+    }
+  });
+
+  socket.addEventListener("close", () => {
+    multiplayerState.socket = null;
+    multiplayerState.peers.clear();
+    setMultiplayerStatus("offline", currentLanguage === "ko" ? "연결 끊김" : "Disconnected");
+  });
+
+  socket.addEventListener("error", () => {
+    disconnectMultiplayer(currentLanguage === "ko" ? "서버 연결 실패" : "Server unavailable");
+  });
+}
+
+function updateMultiplayer(dt) {
+  const now = performance.now();
+  for (const [clientId, peer] of multiplayerState.peers.entries()) {
+    if (now - peer.updatedAt > 5000) {
+      multiplayerState.peers.delete(clientId);
+    }
+  }
+  if (!multiplayerState.socket || multiplayerState.socket.readyState !== WebSocket.OPEN) {
+    return;
+  }
+  multiplayerState.sendTimer -= dt;
+  if (multiplayerState.sendTimer > 0) {
+    return;
+  }
+  multiplayerState.sendTimer = 0.08;
+  sendMultiplayerMessage({
+    type: "state",
+    clientId: multiplayerState.clientId,
+    room: multiplayerState.room,
+    player: {
+      name: accountState.currentNickname || "Player",
+      x: player.x,
+      y: player.y,
+      w: player.w,
+      h: player.h,
+      facing: player.facing,
+      state: player.state,
+      stage: currentStageIndex,
+      character: shopState.equippedCharacter,
+      skin: shopState.equippedSkin,
+      gameState,
+    },
+  });
+}
+
 function updateMuteButtonLabel() {
   const stateLabel = audioState.muted ? t("mute_on") : t("mute_off");
   muteButton.textContent = currentLanguage === "ko"
@@ -2031,6 +2207,7 @@ function applyLanguage(nextLanguage) {
   controlModeSelect.querySelector('option[value="mobile"]').textContent = t("control_mobile");
   updateMuteButtonLabel();
   updateBgmControls();
+  setMultiplayerStatus(multiplayerState.status);
 
   for (const option of stageSelect.options) {
     option.textContent = getStageDisplayName(Number(option.value));
@@ -6570,6 +6747,20 @@ bgmVolumeSlider?.addEventListener("input", () => {
   applyBgmSettings();
 });
 
+multiplayerToggleButton?.addEventListener("click", () => {
+  connectMultiplayer();
+});
+
+multiplayerRoomInput?.addEventListener("change", () => {
+  multiplayerState.room = sanitizeRoomName(multiplayerRoomInput.value);
+  multiplayerRoomInput.value = multiplayerState.room;
+  localStorage.setItem(MULTIPLAYER_ROOM_KEY, multiplayerState.room);
+  if (multiplayerState.socket) {
+    disconnectMultiplayer();
+    connectMultiplayer();
+  }
+});
+
 languageSelect?.addEventListener("change", () => {
   applyLanguage(languageSelect.value);
 });
@@ -7501,6 +7692,7 @@ function loseLife() {
 function update(dt) {
   updateLootBoxAnimation(dt);
   updatePeacefulMusicState();
+  updateMultiplayer(dt);
   updatePlayer(dt);
   changerState.swapCooldown = Math.max(0, changerState.swapCooldown - dt);
   changerState.effectTimer = Math.max(0, changerState.effectTimer - dt);
@@ -8102,6 +8294,7 @@ function drawWorld() {
   drawLightnerEffects();
   drawWildHunterEffects();
   drawPlayer();
+  drawRemotePlayers();
   drawJungleCarryStack();
   drawFrozenPlayerEffect();
   drawChangerSwapEffect();
@@ -8994,6 +9187,41 @@ function drawPlayer() {
     r(18, 6, 2, 3);
   }
   drawPlayerSkinAccent();
+  ctx.restore();
+}
+
+function drawRemotePlayers() {
+  if (multiplayerState.peers.size === 0) {
+    return;
+  }
+  ctx.save();
+  ctx.font = "12px 'Press Start 2P', monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  for (const peer of multiplayerState.peers.values()) {
+    if (peer.stage !== currentStageIndex || peer.gameState !== "playing") {
+      continue;
+    }
+    const alpha = Math.max(0.25, 1 - (performance.now() - peer.updatedAt) / 5000);
+    const x = Number(peer.x) || 0;
+    const y = Number(peer.y) || 0;
+    const w = Number(peer.w) || 26;
+    const h = Number(peer.h) || PLAYER_STAND_H;
+    const facing = Number(peer.facing) || 1;
+
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "rgba(118, 234, 255, 0.22)";
+    ctx.fillRect(x - 5, y - 8, w + 10, h + 12);
+    ctx.strokeStyle = "rgba(118, 234, 255, 0.82)";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x - 4, y - 7, w + 8, h + 10);
+    ctx.fillStyle = peer.skin === "overgearB08" ? "#8f5d32" : peer.skin === "voidKing" ? "#171117" : "#2e6eb5";
+    ctx.fillRect(x + 4, y + 9, w - 8, h - 9);
+    ctx.fillStyle = peer.character === "lightner" ? "#8fefff" : "#ffeaa4";
+    ctx.fillRect(x + (facing > 0 ? w - 8 : 5), y + 7, 5, 4);
+    ctx.fillStyle = "rgba(247, 251, 255, 0.95)";
+    ctx.fillText(String(peer.name || "Friend").slice(0, 12), x + w * 0.5, y - 10);
+  }
   ctx.restore();
 }
 
@@ -10665,5 +10893,9 @@ applyScreenMode();
 applyControlMode();
 openLobby();
 initializeAuthControls();
+if (multiplayerRoomInput) {
+  multiplayerRoomInput.value = multiplayerState.room;
+}
+setMultiplayerStatus("offline");
 savePersistentProgress(true);
 requestAnimationFrame(gameLoop);

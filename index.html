@@ -134,6 +134,15 @@
                   <button id="playButton" type="button" data-i18n="play_button">Play</button>
                   <button id="openShopButton" type="button" class="secondary-button" data-i18n="shop_button">Shop</button>
                 </div>
+                <div class="lobby-section multiplayer-section">
+                  <h3 data-i18n="multiplayer_title">Play Together</h3>
+                  <label class="option" for="multiplayerRoomInput">
+                    <span data-i18n="multiplayer_room_label">Room</span>
+                    <input id="multiplayerRoomInput" type="text" maxlength="20" value="starling" autocomplete="off">
+                  </label>
+                  <button id="multiplayerToggleButton" type="button" class="secondary-button">Online: Off</button>
+                  <p id="multiplayerStatus" class="multiplayer-status">Offline</p>
+                </div>
                 <div class="lobby-section">
                   <h3 data-i18n="stage_select_title">Stage Select</h3>
                   <p id="stageLockText">Stage 1 is ready. Clear stages to unlock the next route.</p>

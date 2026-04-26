@@ -512,6 +512,22 @@ body.classic-mode canvas {
   text-align: right;
 }
 
+.multiplayer-section input {
+  width: 100%;
+  padding: 10px 12px;
+  color: #f7fbff;
+  background: rgba(7, 13, 25, 0.72);
+  border: 1px solid rgba(160, 212, 255, 0.28);
+  border-radius: 8px;
+}
+
+.multiplayer-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  color: #d6f7ff;
+  font-size: 0.9rem;
+}
+
 .lobby-divider {
   margin: 20px 0;
   height: 2px;

@@ -7,6 +7,7 @@ Original retro-inspired 2D side-scrolling platformer built with plain HTML5 Canv
 - `index.html`: entry page
 - `styles.css`: layout and UI styles
 - `game.js`: game systems, levels, enemies, HUD, audio, and lobby flow
+- `server.js`: local online server for friend rooms and player position sync
 
 ## Controls
 
@@ -18,11 +19,19 @@ Original retro-inspired 2D side-scrolling platformer built with plain HTML5 Canv
 
 ## Play Locally
 
-Open `index.html` in a browser.
+For solo offline play, open `index.html` in a browser.
+
+For friend online play, run:
+
+```bash
+node server.js
+```
+
+Then open `http://localhost:3000`. Friends on the same network can join with `http://YOUR_LAN_IP:3000`, enter the same room name in the lobby, and turn `Online` on.
 
 ## Deploy
 
-This project is static, so it can be deployed directly to:
+Solo play is static, so it can be deployed directly to:
 
 - GitHub Pages
 - Netlify
@@ -30,6 +39,8 @@ This project is static, so it can be deployed directly to:
 - Cloudflare Pages
 
 No build step is required.
+
+Friend online play needs a Node.js host that can run `server.js` and accept WebSocket connections.
 
 ## Quick Deploy Checklist
 
