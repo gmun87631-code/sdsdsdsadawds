@@ -1,0 +1,256 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Starling Sprint</title>
+  <meta
+    id="metaDescription"
+    name="description"
+    content="Starling Sprint is an original retro-inspired 2D side-scrolling platformer with multiple stages, difficulty settings, special enemies, and arcade-style action."
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <section class="panel">
+      <div class="title-row">
+        <div>
+          <p class="eyebrow" data-i18n="hero_eyebrow">Original Retro Platformer</p>
+          <h1>Starling Sprint</h1>
+        </div>
+        <div class="controls">
+          <label class="language-picker" for="languageSelect">
+            <span data-i18n="language_label">Language</span>
+            <select id="languageSelect">
+              <option value="en">English</option>
+              <option value="ko">한국어</option>
+            </select>
+          </label>
+          <span data-i18n="control_move">A/D or Left/Right Move</span>
+          <span data-i18n="control_jump">W, Up, or Space Double Jump</span>
+          <span data-i18n="control_skill">E Stealth / Q Assassinate</span>
+          <span data-i18n="control_restart">R Restart</span>
+        </div>
+      </div>
+      <div class="game-frame">
+        <canvas id="game" width="960" height="540" aria-label="Starling Sprint game canvas" data-i18n-aria-label="canvas_label"></canvas>
+        <div class="mobile-controls" id="mobileControls" aria-hidden="true">
+          <div class="mobile-joystick" id="mobileJoystick" aria-label="Move joystick">
+            <div class="mobile-joystick-ring"></div>
+            <div class="mobile-joystick-knob" id="mobileJoystickKnob"></div>
+          </div>
+          <div class="mobile-actions">
+            <button type="button" class="mobile-control-button small" data-mobile-action="skill-e" aria-label="Skill E">E</button>
+            <button type="button" class="mobile-control-button small" data-mobile-action="skill-q" aria-label="Skill Q">Q</button>
+            <button type="button" class="mobile-control-button small" data-mobile-action="skill-x" aria-label="Skill X">X</button>
+            <button type="button" class="mobile-control-button small" data-mobile-action="restart" aria-label="Restart">R</button>
+          </div>
+        </div>
+        <section class="lobby-overlay" id="lobbyOverlay">
+          <div class="lobby-card">
+            <section class="auth-panel" id="authPanel">
+              <p class="eyebrow" data-i18n="auth_eyebrow">Account</p>
+              <h2 data-i18n="auth_title">Join The Lobby</h2>
+              <p class="lobby-copy" data-i18n="auth_copy">Create an account or sign in. Nicknames must be unique in this browser and 20 characters or fewer.</p>
+              <div class="auth-grid">
+                <div class="lobby-section">
+                  <h3 data-i18n="signin_title">Sign In</h3>
+                  <label class="field" for="loginNickname">
+                    <span data-i18n="nickname_label">Nickname</span>
+                    <input id="loginNickname" type="text" maxlength="20" autocomplete="username" />
+                  </label>
+                  <label class="field" for="loginPassword">
+                    <span data-i18n="password_label">Password</span>
+                    <input id="loginPassword" type="password" maxlength="20" autocomplete="current-password" />
+                  </label>
+                  <button id="loginButton" type="button" data-i18n="login_button">Login</button>
+                </div>
+                <div class="lobby-section">
+                  <h3 data-i18n="signup_title">Create Account</h3>
+                  <label class="field" for="signupNickname">
+                    <span data-i18n="nickname_label">Nickname</span>
+                    <input id="signupNickname" type="text" maxlength="20" autocomplete="username" />
+                  </label>
+                  <label class="field" for="signupPassword">
+                    <span data-i18n="password_label">Password</span>
+                    <input id="signupPassword" type="password" maxlength="20" autocomplete="new-password" />
+                  </label>
+                  <button id="signupButton" type="button" data-i18n="create_button">Create</button>
+                </div>
+              </div>
+              <p class="auth-message" id="authMessage">Sign in to start playing.</p>
+            </section>
+            <section class="lobby-panel hidden" id="lobbyPanel">
+              <p class="eyebrow" data-i18n="lobby_eyebrow">Lobby</p>
+              <div class="account-bar">
+                <div>
+                  <h2 data-i18n="lobby_title">Choose Your Route</h2>
+                  <p class="account-title hidden" id="accountTitleBadge">ADMIN TITLE</p>
+                  <p class="lobby-copy" id="accountSummary">Set your difficulty, pick a stage, then dash through the beacon run.</p>
+                </div>
+                <div class="account-actions">
+                  <button id="openPatchNotesButton" type="button" class="secondary-button" data-i18n="patch_notes_button">Patch Notes</button>
+                  <button id="logoutButton" type="button" data-i18n="logout_button">Logout</button>
+                </div>
+              </div>
+              <section class="patch-notes-panel hidden" id="patchNotesPanel">
+                <div class="patch-notes-head">
+                  <div>
+                    <p class="eyebrow" data-i18n="patch_notes_eyebrow">Updates</p>
+                    <h3 data-i18n="patch_notes_title">Patch Notes</h3>
+                  </div>
+                  <button id="closePatchNotesButton" type="button" data-i18n="patch_notes_confirm">Confirm</button>
+                </div>
+                <div class="patch-notes-list" id="patchNotesList"></div>
+              </section>
+              <section class="beta-reward-panel hidden" id="betaRewardPanel">
+                <div class="beta-reward-head">
+                  <div>
+                    <p class="eyebrow" data-i18n="beta_eyebrow">Tester Benefit</p>
+                    <h3 data-i18n="beta_title">Beta Reward</h3>
+                  </div>
+                  <span class="beta-reward-badge" data-i18n="beta_badge">BETA</span>
+                </div>
+                <p class="lobby-copy" id="betaRewardStatus">Choose 1 free character and 1 free skin. This reward is granted only once per beta account.</p>
+                <div class="beta-reward-grid">
+                  <section class="beta-choice-group">
+                    <h4 data-i18n="beta_character_pick">Choose 1 Character</h4>
+                    <div class="beta-choice-list" id="betaRewardCharacterList"></div>
+                  </section>
+                  <section class="beta-choice-group">
+                    <h4 data-i18n="beta_skin_pick">Choose 1 Skin</h4>
+                    <div class="beta-choice-list" id="betaRewardSkinList"></div>
+                  </section>
+                </div>
+                <div class="beta-reward-actions">
+                  <button id="claimBetaRewardButton" type="button" data-i18n="beta_claim_button">Claim Reward</button>
+                </div>
+              </section>
+              <div class="lobby-grid">
+                <div class="lobby-section">
+                  <h3 data-i18n="play_title">Play</h3>
+                  <p data-i18n="play_copy">Start the selected stage with your current settings.</p>
+                  <button id="playButton" type="button" data-i18n="play_button">Play</button>
+                  <button id="openShopButton" type="button" class="secondary-button" data-i18n="shop_button">Shop</button>
+                </div>
+                <div class="lobby-section">
+                  <h3 data-i18n="stage_select_title">Stage Select</h3>
+                  <p id="stageLockText">Stage 1 is ready. Clear stages to unlock the next route.</p>
+                  <label class="option" for="stageSelect">
+                    <span data-i18n="stage_label">Stage</span>
+                    <select id="stageSelect">
+                      <option value="0">Stage 1 - Sun Meadow</option>
+                      <option value="1">Stage 2 - Crystal Canopy</option>
+                      <option value="2">Stage 3 - Ember Skyline</option>
+                      <option value="3">Stage 4 - Neon Arcade</option>
+                      <option value="4">Stage 5 - Clockwork Factory</option>
+                      <option value="5">Stage 6 - Frozen Relay</option>
+                      <option value="6">Stage 7 - Storm Grove</option>
+                      <option value="7">Stage 8 - Monkey Jungle</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="lobby-section">
+                  <h3 data-i18n="settings_title">Settings</h3>
+                  <label class="option" for="difficultySelect">
+                    <span data-i18n="difficulty_label">Difficulty</span>
+                    <select id="difficultySelect">
+                      <option value="easy">Easy</option>
+                      <option value="normal" selected>Normal</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </label>
+                  <label class="option" for="screenModeSelect">
+                    <span data-i18n="screen_label">Screen</span>
+                    <select id="screenModeSelect">
+                      <option value="fullscreen" selected>Fullscreen</option>
+                      <option value="classic">Classic</option>
+                    </select>
+                  </label>
+                  <label class="option" for="controlModeSelect">
+                    <span data-i18n="control_mode_label">Controls</span>
+                    <select id="controlModeSelect">
+                      <option value="desktop" selected>Computer</option>
+                      <option value="mobile">Mobile</option>
+                    </select>
+                  </label>
+                  <button id="muteButton" type="button">Mute: Off</button>
+                  <div class="bgm-controls">
+                    <button id="bgmToggleButton" type="button">BGM: On</button>
+                    <label class="option bgm-volume" for="bgmVolumeSlider">
+                      <span data-i18n="bgm_volume_label">BGM Volume</span>
+                      <input id="bgmVolumeSlider" type="range" min="0" max="100" value="70">
+                      <span id="bgmVolumeValue">70%</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div class="lobby-divider"></div>
+            <div class="shop-shell" id="shopPanel">
+              <div class="shop-copy">
+                <p class="eyebrow" data-i18n="collection_eyebrow">Collection</p>
+                <h3 data-i18n="collection_title">Characters & Skins</h3>
+                <p id="shopStatus">Every account can open this collection. New accounts start with Starling and the Classic skin.</p>
+              </div>
+              <div class="shop-toolbar">
+                <div class="coin-balance" id="coinBalance">Coins: 0</div>
+                <div class="season-badge" id="shopSeasonBadge">LIMITED season ready</div>
+              </div>
+              <section class="storefront-panel">
+                <div class="storefront-head">
+                  <h4 data-i18n="shop_heading">Shop</h4>
+                  <div class="shop-tabs" role="tablist" aria-label="Shop tabs">
+                    <button id="shopTabCharacters" type="button" class="shop-tab active" aria-pressed="true" data-i18n="characters_tab">Characters</button>
+                    <button id="shopTabBoxes" type="button" class="shop-tab" aria-pressed="false" data-i18n="boxes_tab">Boxes</button>
+                  </div>
+                </div>
+                <div class="storefront-list" id="shopCatalogList"></div>
+              </section>
+              <div class="collection-grid">
+                <section class="collection-panel">
+                  <div class="collection-head">
+                    <h4 data-i18n="characters_tab">Characters</h4>
+                    <span id="equippedCharacterBadge">Equipped: Starling</span>
+                  </div>
+                  <div class="collection-list" id="characterCollection"></div>
+                </section>
+                <section class="collection-panel">
+                  <div class="collection-head">
+                    <h4 data-i18n="skins_tab">Skins</h4>
+                    <span id="equippedSkinBadge">Equipped: Classic</span>
+                  </div>
+                  <div class="collection-list" id="skinCollection"></div>
+                </section>
+              </div>
+            </div>
+            <section class="lootbox-panel hidden" id="lootboxPanel">
+              <div class="lootbox-stage" id="lootboxStage">
+                <div class="lootbox-box" id="lootboxBox"></div>
+                <p class="lootbox-stage-text" id="lootboxStageText">상자가 열리는 중...</p>
+              </div>
+              <div class="lootbox-results hidden" id="lootboxResults">
+                <div class="patch-notes-head">
+                  <div>
+                    <p class="eyebrow" data-i18n="lootbox_result_eyebrow">Boxes</p>
+                    <h3 data-i18n="lootbox_result_title">Opening Results</h3>
+                  </div>
+                  <button id="closeLootboxButton" type="button" data-i18n="lootbox_confirm">Confirm</button>
+                </div>
+                <p class="lobby-copy" id="lootboxSummary">결과를 확인하세요.</p>
+                <div class="lootbox-result-grid" id="lootboxResultGrid"></div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+      <div class="footer-row">
+        <p data-i18n="footer_copy">Collect sun shards, stomp critters, and reach the beacon gate.</p>
+        <button id="lobbyButton" type="button" data-i18n="lobby_button">Lobby</button>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
