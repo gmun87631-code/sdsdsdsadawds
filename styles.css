@@ -200,6 +200,7 @@ body.classic-mode canvas {
   max-height: calc(100vh - 48px);
   padding: 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   border: 4px solid rgba(255, 234, 137, 0.85);
   border-radius: 20px;
   background:
@@ -207,6 +208,7 @@ body.classic-mode canvas {
   box-shadow:
     0 20px 45px rgba(0, 0, 0, 0.35),
     inset 0 0 0 3px rgba(255, 255, 255, 0.06);
+  overflow-wrap: anywhere;
 }
 
 .lobby-card h2,
@@ -224,12 +226,14 @@ body.classic-mode canvas {
 .lobby-copy {
   margin-bottom: 18px;
   color: #d6f7ff;
+  overflow-wrap: anywhere;
 }
 
 .lobby-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
+  align-items: start;
 }
 
 .auth-grid {
@@ -252,6 +256,7 @@ body.classic-mode canvas {
 .lobby-section p {
   color: #d6f7ff;
   min-height: 40px;
+  overflow-wrap: anywhere;
 }
 
 .field {
@@ -260,6 +265,7 @@ body.classic-mode canvas {
   gap: 8px;
   margin-bottom: 12px;
   color: #d6f7ff;
+  min-width: 0;
 }
 
 .field span {
@@ -270,6 +276,7 @@ body.classic-mode canvas {
   margin: 16px 0 0;
   min-height: 24px;
   color: #fff2ad;
+  overflow-wrap: anywhere;
 }
 
 .lobby-panel.hidden,
@@ -526,6 +533,11 @@ body.classic-mode canvas {
   margin: 8px 0 0;
   color: #d6f7ff;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.multiplayer-section > button {
+  width: 100%;
 }
 
 .lobby-divider {
