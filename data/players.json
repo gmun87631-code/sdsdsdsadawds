@@ -1,0 +1,12 @@
+{
+  "players": {
+    "u_436f6d7061745573": {
+      "nickname": "CompatUser",
+      "pass": "b29c6532a34fe5971cb8bdf225b2c14cb2f2f6b52c841923ae7cc5f4f055b746",
+      "salt": "4b7d788e1c4ea3e8",
+      "friends": [],
+      "incoming": [],
+      "outgoing": []
+    }
+  }
+}
