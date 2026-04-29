@@ -9,6 +9,30 @@ const bgmVolumeValue = document.getElementById("bgmVolumeValue");
 const multiplayerRoomInput = document.getElementById("multiplayerRoomInput");
 const multiplayerToggleButton = document.getElementById("multiplayerToggleButton");
 const multiplayerStatus = document.getElementById("multiplayerStatus");
+const onlinePanelButton = document.getElementById("onlinePanelButton");
+const onlineConnectButton = document.getElementById("onlineConnectButton");
+const onlineDisconnectButton = document.getElementById("onlineDisconnectButton");
+const onlineStatus = document.getElementById("onlineStatus");
+const onlinePanel = document.getElementById("onlinePanel");
+const onlineSelfLabel = document.getElementById("onlineSelfLabel");
+const onlineRefreshRoomsButton = document.getElementById("onlineRefreshRoomsButton");
+const onlineRoomNameInput = document.getElementById("onlineRoomNameInput");
+const onlineRoomVisibilitySelect = document.getElementById("onlineRoomVisibilitySelect");
+const onlineRoomMaxSelect = document.getElementById("onlineRoomMaxSelect");
+const onlineCreateRoomButton = document.getElementById("onlineCreateRoomButton");
+const onlineRoomsList = document.getElementById("onlineRoomsList");
+const onlineFriendNicknameInput = document.getElementById("onlineFriendNicknameInput");
+const onlineFriendRequestButton = document.getElementById("onlineFriendRequestButton");
+const onlineFriendsList = document.getElementById("onlineFriendsList");
+const onlineFriendRequestsList = document.getElementById("onlineFriendRequestsList");
+const onlineInvitesList = document.getElementById("onlineInvitesList");
+const onlineRoomPanel = document.getElementById("onlineRoomPanel");
+const onlineRoomTitle = document.getElementById("onlineRoomTitle");
+const onlineRoomMeta = document.getElementById("onlineRoomMeta");
+const onlineRoomPlayersList = document.getElementById("onlineRoomPlayersList");
+const onlineReadyButton = document.getElementById("onlineReadyButton");
+const onlineStartButton = document.getElementById("onlineStartButton");
+const onlineLeaveRoomButton = document.getElementById("onlineLeaveRoomButton");
 const difficultySelect = document.getElementById("difficultySelect");
 const screenModeSelect = document.getElementById("screenModeSelect");
 const controlModeSelect = document.getElementById("controlModeSelect");
@@ -84,6 +108,15 @@ const BETA_REWARDS_ACTIVE = true;
 const STARLING_JUMP_MULTIPLIER = 1.12;
 const MAX_MONSTER_SPAWNS = 14;
 const PATCH_NOTES = [
+  {
+    version: "Beta v0.9",
+    date: "2026-04-29",
+    items: [
+      "로비 UI 레이아웃 개선: 자동 컬럼 배치, 줄바꿈(overflow-wrap), 버튼/입력 겹침 방지",
+      "온라인 로비/친구 목록을 스크롤 영역으로 분리하여 긴 목록에서도 화면이 무너지지 않도록 수정",
+      "작은 화면에서 입력/버튼이 세로로 쌓이도록 반응형 레이아웃 조정",
+    ],
+  },
   {
     version: "Beta v0.8",
     date: "2026-04-26",
@@ -1010,6 +1043,19 @@ const multiplayerState = {
   peers: new Map(),
   sendTimer: 0,
   status: "offline",
+};
+
+const onlineState = {
+  socket: null,
+  requestSeq: 0,
+  status: "offline",
+  self: null,
+  rooms: [],
+  room: null,
+  invites: [],
+  startedRoomId: "",
+  gamePeers: new Map(),
+  sendTimer: 0,
 };
 
 const camera = { x: 0 };
@@ -2161,6 +2207,412 @@ function updateMultiplayer(dt) {
       gameState,
     },
   });
+}
+
+function onlineClear(node) {
+  if (!node) return;
+  while (node.firstChild) node.removeChild(node.firstChild);
+}
+
+function onlineServerUrl() {
+  const override = (localStorage.getItem("ONLINE_SERVER_URL") || "").trim();
+  if (override.startsWith("ws://") || override.startsWith("wss://")) {
+    return override;
+  }
+
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  if (host) return `${protocol}//${host}`;
+  return "ws://localhost:3000";
+}
+
+function onlineNextRequestId() {
+  onlineState.requestSeq = (onlineState.requestSeq + 1) % 1000000;
+  return `r${onlineState.requestSeq}`;
+}
+
+function onlineIsConnected() {
+  return Boolean(onlineState.socket && onlineState.socket.readyState === WebSocket.OPEN && onlineState.self);
+}
+
+function setOnlineStatus(status, detail = "") {
+  onlineState.status = status;
+  const isOnline = status === "online";
+
+  if (onlineStatus) {
+    onlineStatus.textContent = currentLanguage === "ko"
+      ? isOnline
+        ? "온라인"
+        : status === "connecting"
+          ? "연결 중..."
+          : detail || "오프라인"
+      : isOnline
+        ? "Online"
+        : status === "connecting"
+          ? "Connecting..."
+          : detail || "Offline";
+  }
+
+  if (onlineConnectButton) {
+    onlineConnectButton.disabled = isOnline || status === "connecting";
+    onlineConnectButton.setAttribute("aria-pressed", String(isOnline));
+  }
+  if (onlineDisconnectButton) {
+    onlineDisconnectButton.disabled = !isOnline && status !== "connecting";
+  }
+}
+
+function sendOnlineMessage(message) {
+  if (!onlineState.socket || onlineState.socket.readyState !== WebSocket.OPEN) return;
+  onlineState.socket.send(JSON.stringify(message));
+}
+
+function renderOnlineSelf() {
+  if (!onlineSelfLabel) return;
+  if (onlineState.self && onlineState.self.nickname) {
+    onlineSelfLabel.textContent = currentLanguage === "ko"
+      ? `접속: ${onlineState.self.nickname}`
+      : `Signed in: ${onlineState.self.nickname}`;
+  } else {
+    onlineSelfLabel.textContent = currentLanguage === "ko" ? "연결 안 됨" : "Not connected";
+  }
+}
+
+function renderOnlineRooms() {
+  if (!onlineRoomsList) return;
+  onlineClear(onlineRoomsList);
+
+  for (const room of onlineState.rooms || []) {
+    const row = document.createElement("div");
+    row.className = "online-item";
+
+    const meta = document.createElement("div");
+    const title = document.createElement("strong");
+    title.textContent = room.name || "Room";
+    const sub = document.createElement("span");
+    sub.textContent = `${room.playerCount || 0}/${room.maxPlayers || 0} | ${room.visibility || "public"} | Host: ${room.hostNickname || "Unknown"}`;
+    meta.append(title, sub);
+
+    const join = document.createElement("button");
+    join.type = "button";
+    join.textContent = currentLanguage === "ko" ? "참가" : "Join";
+    join.disabled = !onlineIsConnected();
+    join.addEventListener("click", () => {
+      const roomId = String(room.id || "");
+      if (!roomId) return;
+      let code = "";
+      if (room.joinCodeHint === "code") {
+        code = prompt(currentLanguage === "ko" ? "초대 코드" : "Invite code") || "";
+      }
+      sendOnlineMessage({ type: "online.room.join", requestId: onlineNextRequestId(), roomId, code });
+    });
+
+    row.append(meta, join);
+    onlineRoomsList.append(row);
+  }
+}
+
+function renderOnlineFriends() {
+  const self = onlineState.self;
+
+  if (onlineFriendsList) {
+    onlineClear(onlineFriendsList);
+    for (const friend of self?.friends || []) {
+      const row = document.createElement("div");
+      row.className = "online-item";
+      const meta = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = friend.nickname || "Friend";
+      const sub = document.createElement("span");
+      sub.textContent = friend.online ? (currentLanguage === "ko" ? "온라인" : "Online") : (currentLanguage === "ko" ? "오프라인" : "Offline");
+      meta.append(title, sub);
+
+      const invite = document.createElement("button");
+      invite.type = "button";
+      invite.textContent = currentLanguage === "ko" ? "초대" : "Invite";
+      invite.disabled = !onlineIsConnected() || !friend.online;
+      invite.addEventListener("click", () => {
+        sendOnlineMessage({ type: "online.friend.invite", requestId: onlineNextRequestId(), userId: friend.id });
+      });
+
+      row.append(meta, invite);
+      onlineFriendsList.append(row);
+    }
+  }
+
+  if (onlineFriendRequestsList) {
+    onlineClear(onlineFriendRequestsList);
+    for (const req of self?.incoming || []) {
+      const row = document.createElement("div");
+      row.className = "online-item";
+      const meta = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = req.nickname || "Request";
+      meta.append(title);
+
+      const accept = document.createElement("button");
+      accept.type = "button";
+      accept.textContent = currentLanguage === "ko" ? "수락" : "Accept";
+      accept.disabled = !onlineIsConnected();
+      accept.addEventListener("click", () => {
+        sendOnlineMessage({ type: "online.friend.accept", requestId: onlineNextRequestId(), userId: req.id });
+      });
+
+      const reject = document.createElement("button");
+      reject.type = "button";
+      reject.textContent = currentLanguage === "ko" ? "거절" : "Reject";
+      reject.disabled = !onlineIsConnected();
+      reject.addEventListener("click", () => {
+        sendOnlineMessage({ type: "online.friend.reject", requestId: onlineNextRequestId(), userId: req.id });
+      });
+
+      row.append(meta, accept, reject);
+      onlineFriendRequestsList.append(row);
+    }
+  }
+
+  if (onlineInvitesList) {
+    onlineClear(onlineInvitesList);
+    for (const inv of onlineState.invites || []) {
+      const row = document.createElement("div");
+      row.className = "online-item";
+      const meta = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = currentLanguage === "ko"
+        ? `${inv.fromNickname || "Unknown"}님 초대`
+        : `Invite from ${inv.fromNickname || "Unknown"}`;
+      const sub = document.createElement("span");
+      sub.textContent = `${inv.roomName || "Room"} | ${inv.roomVisibility || ""}`;
+      meta.append(title, sub);
+
+      const join = document.createElement("button");
+      join.type = "button";
+      join.textContent = currentLanguage === "ko" ? "참가" : "Join";
+      join.disabled = !onlineIsConnected();
+      join.addEventListener("click", () => {
+        const roomId = String(inv.roomId || "");
+        if (!roomId) return;
+        const code = inv.code || "";
+        sendOnlineMessage({ type: "online.room.join", requestId: onlineNextRequestId(), roomId, code });
+      });
+
+      row.append(meta, join);
+      onlineInvitesList.append(row);
+    }
+  }
+}
+
+function renderOnlineRoom() {
+  if (!onlineRoomPanel) return;
+  const room = onlineState.room;
+  const show = Boolean(room && room.id);
+  onlineRoomPanel.classList.toggle("hidden", !show);
+  if (!show) return;
+
+  if (onlineRoomTitle) onlineRoomTitle.textContent = room.name || "Room";
+
+  if (onlineRoomMeta) {
+    const codePart = room.visibility === "private" ? ` | Code: ${room.joinCodeHint ? "*****" : ""}` : "";
+    onlineRoomMeta.textContent = `${room.playerCount || 0}/${room.maxPlayers || 0} | Host: ${room.hostNickname || "Unknown"}${codePart}`;
+  }
+
+  if (onlineRoomPlayersList) {
+    onlineClear(onlineRoomPlayersList);
+    for (const p of room.players || []) {
+      const row = document.createElement("div");
+      row.className = "online-item";
+      const meta = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = p.nickname + (p.id === room.hostId ? (currentLanguage === "ko" ? " (호스트)" : " (Host)") : "");
+      const sub = document.createElement("span");
+      sub.textContent = p.ready ? (currentLanguage === "ko" ? "준비" : "Ready") : (currentLanguage === "ko" ? "대기" : "Not ready");
+      meta.append(title, sub);
+      row.append(meta);
+      onlineRoomPlayersList.append(row);
+    }
+  }
+
+  const me = room.players?.find?.((p) => p.id === onlineState.self?.id);
+  if (onlineReadyButton) {
+    onlineReadyButton.textContent = currentLanguage === "ko" ? (me?.ready ? "준비 취소" : "준비") : (me?.ready ? "Unready" : "Ready");
+    onlineReadyButton.disabled = !onlineIsConnected();
+  }
+  if (onlineStartButton) {
+    onlineStartButton.disabled = !onlineIsConnected() || onlineState.self?.id !== room.hostId;
+  }
+}
+
+function renderOnlineAll() {
+  renderOnlineSelf();
+  renderOnlineRooms();
+  renderOnlineFriends();
+  renderOnlineRoom();
+}
+
+function handleOnlineMessage(message) {
+  const type = typeof message?.type === "string" ? message.type : "";
+
+  if (type === "online.error") {
+    setOnlineStatus("online", currentLanguage === "ko" ? "요청 실패" : "Request failed");
+    return;
+  }
+
+  if (type === "online.hello.ok") {
+    onlineState.self = message.self || null;
+    setOnlineStatus("online");
+    sendOnlineMessage({ type: "online.rooms.list", requestId: onlineNextRequestId() });
+    renderOnlineAll();
+    return;
+  }
+
+  if (type === "online.self") {
+    onlineState.self = message.self || null;
+    renderOnlineAll();
+    return;
+  }
+
+  if (type === "online.rooms.list.ok" || type === "online.rooms.update") {
+    onlineState.rooms = Array.isArray(message.rooms) ? message.rooms : [];
+    renderOnlineRooms();
+    return;
+  }
+
+  if (type === "online.room.update") {
+    onlineState.room = message.room || null;
+    renderOnlineRoom();
+    return;
+  }
+
+  if (type === "online.room.left") {
+    onlineState.room = null;
+    onlineState.startedRoomId = "";
+    onlineState.gamePeers.clear();
+    renderOnlineAll();
+    return;
+  }
+
+  if (type === "online.friend.invite") {
+    onlineState.invites.push(message);
+    renderOnlineFriends();
+    return;
+  }
+}
+
+function ensureOnlineNickname() {
+  let nickname = sanitizeRoomName(accountState.currentNickname || "");
+  if (nickname) return nickname;
+  nickname = sanitizeRoomName((loginNicknameInput && loginNicknameInput.value) || "");
+  if (nickname) return nickname;
+  nickname = sanitizeRoomName((signupNicknameInput && signupNicknameInput.value) || "");
+  return nickname || "";
+}
+
+function disconnectOnline(detail = "") {
+  if (onlineState.socket) {
+    onlineState.socket.onclose = null;
+    onlineState.socket.close();
+    onlineState.socket = null;
+  }
+  onlineState.self = null;
+  onlineState.rooms = [];
+  onlineState.room = null;
+  onlineState.invites = [];
+  onlineState.gamePeers.clear();
+  onlineState.startedRoomId = "";
+  setOnlineStatus("offline", detail);
+  renderOnlineAll();
+}
+
+function connectOnline() {
+  if (!("WebSocket" in window)) {
+    setOnlineStatus("offline", "WebSocket unsupported");
+    return;
+  }
+
+  const nickname = ensureOnlineNickname();
+  if (!nickname) {
+    setOnlineStatus("offline", currentLanguage === "ko" ? "닉네임 입력" : "Enter nickname");
+    openLobby();
+    showAuthPanel(true);
+    return;
+  }
+
+  if (onlineState.socket) {
+    disconnectOnline();
+    return;
+  }
+
+  setOnlineStatus("connecting");
+  const socket = new WebSocket(onlineServerUrl());
+  onlineState.socket = socket;
+
+  socket.addEventListener("open", () => {
+    sendOnlineMessage({ type: "online.hello", requestId: onlineNextRequestId(), nickname });
+  });
+
+  socket.addEventListener("message", (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (_) {
+      return;
+    }
+    handleOnlineMessage(message);
+  });
+
+  socket.addEventListener("close", () => {
+    onlineState.socket = null;
+    disconnectOnline(currentLanguage === "ko" ? "연결 끊김" : "Disconnected");
+  });
+
+  socket.addEventListener("error", () => {
+    disconnectOnline(currentLanguage === "ko" ? "서버 연결 실패" : "Server unavailable");
+  });
+}
+
+function onlineRequestRooms() {
+  if (!onlineIsConnected()) return;
+  sendOnlineMessage({ type: "online.rooms.list", requestId: onlineNextRequestId() });
+}
+
+function onlineCreateRoom() {
+  if (!onlineIsConnected()) return;
+  const name = (onlineRoomNameInput && onlineRoomNameInput.value) || "Room";
+  const visibility = (onlineRoomVisibilitySelect && onlineRoomVisibilitySelect.value) || "public";
+  const maxPlayers = Number((onlineRoomMaxSelect && onlineRoomMaxSelect.value) || 4);
+  sendOnlineMessage({ type: "online.room.create", requestId: onlineNextRequestId(), name, visibility, maxPlayers });
+}
+
+function onlineLeaveRoom() {
+  if (!onlineIsConnected()) return;
+  sendOnlineMessage({ type: "online.room.leave", requestId: onlineNextRequestId() });
+}
+
+function onlineToggleReady() {
+  if (!onlineIsConnected() || !onlineState.room) return;
+  const me = onlineState.room.players?.find?.((p) => p.id === onlineState.self?.id);
+  const next = !me?.ready;
+  sendOnlineMessage({ type: "online.room.ready", requestId: onlineNextRequestId(), ready: next });
+}
+
+function onlineStartGame() {
+  if (!onlineIsConnected() || !onlineState.room) return;
+  sendOnlineMessage({
+    type: "online.room.start",
+    requestId: onlineNextRequestId(),
+    settings: {
+      stageIndex: selectedStageIndex,
+      difficulty: activeDifficultyKey,
+    },
+  });
+}
+
+function onlineSendFriendRequest() {
+  if (!onlineIsConnected()) return;
+  const nickname = sanitizeRoomName((onlineFriendNicknameInput && onlineFriendNicknameInput.value) || "");
+  if (!nickname) return;
+  if (onlineFriendNicknameInput) onlineFriendNicknameInput.value = "";
+  sendOnlineMessage({ type: "online.friend.request", requestId: onlineNextRequestId(), nickname });
 }
 
 function updateMuteButtonLabel() {
@@ -6761,6 +7213,44 @@ multiplayerRoomInput?.addEventListener("change", () => {
   }
 });
 
+onlinePanelButton?.addEventListener("click", () => {
+  if (!onlinePanel) return;
+  const nextHidden = !onlinePanel.classList.contains("hidden") ? true : false;
+  onlinePanel.classList.toggle("hidden", nextHidden);
+});
+
+onlineConnectButton?.addEventListener("click", () => {
+  connectOnline();
+});
+
+onlineDisconnectButton?.addEventListener("click", () => {
+  disconnectOnline();
+});
+
+onlineRefreshRoomsButton?.addEventListener("click", () => {
+  onlineRequestRooms();
+});
+
+onlineCreateRoomButton?.addEventListener("click", () => {
+  onlineCreateRoom();
+});
+
+onlineFriendRequestButton?.addEventListener("click", () => {
+  onlineSendFriendRequest();
+});
+
+onlineReadyButton?.addEventListener("click", () => {
+  onlineToggleReady();
+});
+
+onlineStartButton?.addEventListener("click", () => {
+  onlineStartGame();
+});
+
+onlineLeaveRoomButton?.addEventListener("click", () => {
+  onlineLeaveRoom();
+});
+
 languageSelect?.addEventListener("change", () => {
   applyLanguage(languageSelect.value);
 });
@@ -10897,5 +11387,7 @@ if (multiplayerRoomInput) {
   multiplayerRoomInput.value = multiplayerState.room;
 }
 setMultiplayerStatus("offline");
+setOnlineStatus("offline");
+renderOnlineAll();
 savePersistentProgress(true);
 requestAnimationFrame(gameLoop);

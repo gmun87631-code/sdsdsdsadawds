@@ -52,7 +52,7 @@ body.classic-mode .game-shell {
 }
 
 body.classic-mode .panel {
-  width: min(1020px, 100%);
+  width: min(1440px, 100%);
   min-height: 0;
   padding: 18px;
   border: 6px solid var(--panel-border);
@@ -196,7 +196,7 @@ body.classic-mode canvas {
 }
 
 .lobby-card {
-  width: min(760px, 100%);
+  width: min(1120px, 100%);
   max-height: calc(100vh - 48px);
   padding: 24px;
   overflow-y: auto;
@@ -538,6 +538,150 @@ body.classic-mode canvas {
 
 .multiplayer-section > button {
   width: 100%;
+}
+
+.online-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(8, 20, 34, 0.55);
+  border: 1px solid rgba(160, 212, 255, 0.18);
+}
+
+.online-panel.hidden {
+  display: none;
+}
+
+.online-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.online-self {
+  color: #fff4b5;
+  font-weight: 700;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.online-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.online-box {
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(160, 212, 255, 0.14);
+  overflow-wrap: anywhere;
+}
+
+.online-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.online-head h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.online-create {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.online-create input,
+.online-create select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.online-create button {
+  padding: 8px 12px;
+}
+
+.online-list {
+  display: grid;
+  gap: 8px;
+  max-height: 320px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.online-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(7, 13, 25, 0.5);
+  border: 1px solid rgba(160, 212, 255, 0.14);
+}
+
+.online-item > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.online-item strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.online-item span {
+  display: block;
+  font-size: 0.82rem;
+  color: #d6f7ff;
+  overflow-wrap: anywhere;
+}
+
+.online-item button {
+  white-space: nowrap;
+}
+
+.online-room-meta {
+  overflow-wrap: anywhere;
+}
+
+.online-room {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 234, 137, 0.06);
+  border: 1px solid rgba(255, 234, 137, 0.2);
+}
+
+.online-room.hidden {
+  display: none;
+}
+
+.online-room-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.online-room-meta {
+  margin: 8px 0;
+  color: #d6f7ff;
+  font-size: 0.86rem;
 }
 
 .lobby-divider {
@@ -1681,6 +1825,22 @@ body.touch-controls-enabled .mobile-control-button.active {
 
   .auth-grid {
     grid-template-columns: 1fr;
+  }
+
+  .online-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .online-create {
+    grid-template-columns: 1fr;
+  }
+
+  .online-create button {
+    width: 100%;
+  }
+
+  .online-list {
+    max-height: 240px;
   }
 
   .beta-reward-grid {
