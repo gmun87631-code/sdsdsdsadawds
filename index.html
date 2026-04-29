@@ -136,12 +136,66 @@
                 </div>
                 <div class="lobby-section multiplayer-section">
                   <h3 data-i18n="multiplayer_title">Play Together</h3>
-                  <label class="option" for="multiplayerRoomInput">
-                    <span data-i18n="multiplayer_room_label">Room</span>
-                    <input id="multiplayerRoomInput" type="text" maxlength="20" value="starling" autocomplete="off">
-                  </label>
-                  <button id="multiplayerToggleButton" type="button" class="secondary-button">Online: Off</button>
-                  <p id="multiplayerStatus" class="multiplayer-status">Offline</p>
+                  <button id="onlinePanelButton" type="button" class="secondary-button">Online Lobby</button>
+                  <button id="onlineConnectButton" type="button" class="secondary-button">Connect</button>
+                  <p id="onlineStatus" class="multiplayer-status">Offline</p>
+                  <section class="online-panel hidden" id="onlinePanel" aria-label="Online lobby panel">
+                    <div class="online-topbar">
+                      <div class="online-self" id="onlineSelfLabel">Not connected</div>
+                      <button id="onlineDisconnectButton" type="button" class="secondary-button">Disconnect</button>
+                    </div>
+                    <div class="online-columns">
+                      <section class="online-box" aria-label="Rooms">
+                        <div class="online-head">
+                          <h4>Rooms</h4>
+                          <button id="onlineRefreshRoomsButton" type="button" class="secondary-button">Refresh</button>
+                        </div>
+                        <div class="online-create">
+                          <input id="onlineRoomNameInput" type="text" maxlength="24" placeholder="Room name" autocomplete="off">
+                          <select id="onlineRoomVisibilitySelect" aria-label="Room visibility">
+                            <option value="public">Public</option>
+                            <option value="friends">Friends-only</option>
+                            <option value="private">Private</option>
+                          </select>
+                          <select id="onlineRoomMaxSelect" aria-label="Max players">
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4" selected>4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                          </select>
+                          <button id="onlineCreateRoomButton" type="button">Create</button>
+                        </div>
+                        <div class="online-list" id="onlineRoomsList"></div>
+                      </section>
+                      <section class="online-box" aria-label="Friends">
+                        <div class="online-head">
+                          <h4>Friends</h4>
+                        </div>
+                        <div class="online-create">
+                          <input id="onlineFriendNicknameInput" type="text" maxlength="20" placeholder="Friend nickname" autocomplete="off">
+                          <button id="onlineFriendRequestButton" type="button">Add</button>
+                        </div>
+                        <div class="online-list" id="onlineFriendsList"></div>
+                        <div class="online-list" id="onlineFriendRequestsList"></div>
+                        <div class="online-list" id="onlineInvitesList"></div>
+                      </section>
+                    </div>
+                    <section class="online-room hidden" id="onlineRoomPanel" aria-label="Current room">
+                      <div class="online-head">
+                        <h4 id="onlineRoomTitle">Room</h4>
+                        <div class="online-room-actions">
+                          <button id="onlineReadyButton" type="button" class="secondary-button">Ready</button>
+                          <button id="onlineStartButton" type="button" class="secondary-button">Start</button>
+                          <button id="onlineLeaveRoomButton" type="button" class="secondary-button">Leave</button>
+                        </div>
+                      </div>
+                      <div class="online-room-meta" id="onlineRoomMeta"></div>
+                      <div class="online-list" id="onlineRoomPlayersList"></div>
+                    </section>
+                  </section>
                 </div>
                 <div class="lobby-section">
                   <h3 data-i18n="stage_select_title">Stage Select</h3>
