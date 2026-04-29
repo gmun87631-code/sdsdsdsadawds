@@ -208,7 +208,6 @@ body.classic-mode canvas {
   box-shadow:
     0 20px 45px rgba(0, 0, 0, 0.35),
     inset 0 0 0 3px rgba(255, 255, 255, 0.06);
-  overflow-wrap: anywhere;
 }
 
 .lobby-card h2,
@@ -270,6 +269,7 @@ body.classic-mode canvas {
 
 .field span {
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .auth-message {
@@ -579,7 +579,6 @@ body.classic-mode canvas {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(160, 212, 255, 0.14);
-  overflow-wrap: anywhere;
 }
 
 .online-head {
@@ -597,10 +596,11 @@ body.classic-mode canvas {
 }
 
 .online-create {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+  align-items: center;
 }
 
 .online-create input,
@@ -611,8 +611,18 @@ body.classic-mode canvas {
   min-width: 0;
 }
 
+.online-create input {
+  flex: 1 1 420px;
+  white-space: nowrap;
+}
+
+.online-create select {
+  flex: 0 0 120px;
+}
+
 .online-create button {
   padding: 8px 12px;
+  flex: 0 0 auto;
 }
 
 .online-list {
@@ -1832,11 +1842,15 @@ body.touch-controls-enabled .mobile-control-button.active {
   }
 
   .online-create {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+  }
+
+  .online-create select {
+    flex: 1 1 140px;
   }
 
   .online-create button {
-    width: 100%;
+    flex: 1 1 140px;
   }
 
   .online-list {
