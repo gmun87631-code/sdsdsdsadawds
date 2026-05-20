@@ -1,319 +1,196 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Starling Sprint</title>
-  <meta
-    id="metaDescription"
-    name="description"
-    content="Starling Sprint is an original retro-inspired 2D side-scrolling platformer with multiple stages, difficulty settings, special enemies, and arcade-style action."
-  />
+  <title>가위바위보 생존전</title>
+  <meta name="description" content="다수결 판정과 시장 투표가 있는 가위바위보 생존 게임" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="game-shell">
-    <section class="panel">
-      <div class="title-row">
-        <div>
-          <p class="eyebrow" data-i18n="hero_eyebrow">Original Retro Platformer</p>
-          <h1>Starling Sprint</h1>
-        </div>
-        <div class="controls">
-          <label class="language-picker" for="languageSelect">
-            <span data-i18n="language_label">Language</span>
-            <select id="languageSelect">
-              <option value="en">English</option>
-              <option value="ko">한국어</option>
-            </select>
-          </label>
-          <span data-i18n="control_move">A/D or Left/Right Move</span>
-          <span data-i18n="control_jump">W, Up, or Space Double Jump</span>
-          <span data-i18n="control_skill">E Stealth / Q Assassinate</span>
-          <span data-i18n="control_restart">R Restart</span>
-        </div>
+  <main class="app">
+    <header class="header">
+      <div class="title">
+        <span class="eyebrow">다수결 생존 아레나</span>
+        <h1>가위바위보 생존전</h1>
+        <p>가장 많이 선택된 패가 기준 패가 되고, 그 기준 패에게 지는 패를 낸 참가자가 탈락합니다.</p>
       </div>
-      <div class="game-frame">
-        <canvas id="game" width="960" height="540" aria-label="Starling Sprint game canvas" data-i18n-aria-label="canvas_label"></canvas>
-        <div class="mobile-controls" id="mobileControls" aria-hidden="true">
-          <div class="mobile-joystick" id="mobileJoystick" aria-label="Move joystick">
-            <div class="mobile-joystick-ring"></div>
-            <div class="mobile-joystick-knob" id="mobileJoystickKnob"></div>
+
+      <div class="toolbar" aria-label="게임 조작">
+        <button type="button" id="patchNotesButton" class="icon-button">
+          <span aria-hidden="true">i</span>
+          <span>패치노트</span>
+        </button>
+        <button type="button" id="musicButton" class="icon-button" aria-pressed="false">
+          <span aria-hidden="true">♪</span>
+          <span>BGM 켜기</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="status-bar" aria-label="게임 상태">
+      <article class="status-card">
+        <div class="status-label">라운드</div>
+        <div class="status-value" id="roundValue">1</div>
+      </article>
+      <article class="status-card">
+        <div class="status-label">생존자</div>
+        <div class="status-value" id="aliveValue">10</div>
+      </article>
+      <article class="status-card">
+        <div class="status-label">현재 시장</div>
+        <div class="status-value status-mayor" id="mayorValue">없음</div>
+      </article>
+      <article class="status-card">
+        <div class="status-label">상태</div>
+        <div class="status-value status-phase" id="phaseValue">대기</div>
+      </article>
+    </section>
+
+    <section class="main-grid">
+      <section class="panel arena-panel">
+        <div class="panel-head">
+          <div>
+            <span class="eyebrow" id="stageEyebrow">게임 준비</span>
+            <h2 id="stageTitle">시장 투표를 시작하세요</h2>
           </div>
-          <div class="mobile-actions">
-            <button type="button" class="mobile-control-button small" data-mobile-action="skill-e" aria-label="Skill E">E</button>
-            <button type="button" class="mobile-control-button small" data-mobile-action="skill-q" aria-label="Skill Q">Q</button>
-            <button type="button" class="mobile-control-button small" data-mobile-action="skill-x" aria-label="Skill X">X</button>
-            <button type="button" class="mobile-control-button small" data-mobile-action="restart" aria-label="Restart">R</button>
-          </div>
+          <button type="button" id="startButton" class="primary-action">시작</button>
         </div>
-        <section class="lobby-overlay" id="lobbyOverlay">
-          <div class="lobby-card">
-            <section class="auth-panel" id="authPanel">
-              <p class="eyebrow" data-i18n="auth_eyebrow">Account</p>
-              <h2 data-i18n="auth_title">Join The Lobby</h2>
-              <p class="lobby-copy" data-i18n="auth_copy">Create an account or sign in. Nicknames must be unique in this browser and 20 characters or fewer.</p>
-              <div class="auth-grid">
-                <div class="lobby-section">
-                  <h3 data-i18n="signin_title">Sign In</h3>
-                  <label class="field" for="loginNickname">
-                    <span data-i18n="nickname_label">Nickname</span>
-                    <input id="loginNickname" type="text" maxlength="20" autocomplete="username" />
-                  </label>
-                  <label class="field" for="loginPassword">
-                    <span data-i18n="password_label">Password</span>
-                    <input id="loginPassword" type="password" maxlength="20" autocomplete="current-password" />
-                  </label>
-                  <button id="loginButton" type="button" data-i18n="login_button">Login</button>
-                </div>
-                <div class="lobby-section">
-                  <h3 data-i18n="signup_title">Create Account</h3>
-                  <label class="field" for="signupNickname">
-                    <span data-i18n="nickname_label">Nickname</span>
-                    <input id="signupNickname" type="text" maxlength="20" autocomplete="username" />
-                  </label>
-                  <label class="field" for="signupPassword">
-                    <span data-i18n="password_label">Password</span>
-                    <input id="signupPassword" type="password" maxlength="20" autocomplete="new-password" />
-                  </label>
-                  <button id="signupButton" type="button" data-i18n="create_button">Create</button>
-                </div>
-              </div>
-              <p class="auth-message" id="authMessage">Sign in to start playing.</p>
-            </section>
-            <section class="lobby-panel hidden" id="lobbyPanel">
-              <p class="eyebrow" data-i18n="lobby_eyebrow">Lobby</p>
-              <div class="account-bar">
-                <div>
-                  <h2 data-i18n="lobby_title">Choose Your Route</h2>
-                  <p class="account-title hidden" id="accountTitleBadge">ADMIN TITLE</p>
-                  <p class="lobby-copy" id="accountSummary">Set your difficulty, pick a stage, then dash through the beacon run.</p>
-                </div>
-                <div class="account-actions">
-                  <button id="openPatchNotesButton" type="button" class="secondary-button" data-i18n="patch_notes_button">Patch Notes</button>
-                  <button id="logoutButton" type="button" data-i18n="logout_button">Logout</button>
-                </div>
-              </div>
-              <section class="patch-notes-panel hidden" id="patchNotesPanel">
-                <div class="patch-notes-head">
-                  <div>
-                    <p class="eyebrow" data-i18n="patch_notes_eyebrow">Updates</p>
-                    <h3 data-i18n="patch_notes_title">Patch Notes</h3>
-                  </div>
-                  <button id="closePatchNotesButton" type="button" data-i18n="patch_notes_confirm">Confirm</button>
-                </div>
-                <div class="patch-notes-list" id="patchNotesList"></div>
-              </section>
-              <section class="beta-reward-panel hidden" id="betaRewardPanel">
-                <div class="beta-reward-head">
-                  <div>
-                    <p class="eyebrow" data-i18n="beta_eyebrow">Tester Benefit</p>
-                    <h3 data-i18n="beta_title">Beta Reward</h3>
-                  </div>
-                  <span class="beta-reward-badge" data-i18n="beta_badge">BETA</span>
-                </div>
-                <p class="lobby-copy" id="betaRewardStatus">Choose 1 free character and 1 free skin. This reward is granted only once per beta account.</p>
-                <div class="beta-reward-grid">
-                  <section class="beta-choice-group">
-                    <h4 data-i18n="beta_character_pick">Choose 1 Character</h4>
-                    <div class="beta-choice-list" id="betaRewardCharacterList"></div>
-                  </section>
-                  <section class="beta-choice-group">
-                    <h4 data-i18n="beta_skin_pick">Choose 1 Skin</h4>
-                    <div class="beta-choice-list" id="betaRewardSkinList"></div>
-                  </section>
-                </div>
-                <div class="beta-reward-actions">
-                  <button id="claimBetaRewardButton" type="button" data-i18n="beta_claim_button">Claim Reward</button>
-                </div>
-              </section>
-              <div class="lobby-grid">
-                <div class="lobby-section">
-                  <h3 data-i18n="play_title">Play</h3>
-                  <p data-i18n="play_copy">Start the selected stage with your current settings.</p>
-                  <button id="playButton" type="button" data-i18n="play_button">Play</button>
-                  <button id="openShopButton" type="button" class="secondary-button" data-i18n="shop_button">Shop</button>
-                </div>
-                <div class="lobby-section multiplayer-section">
-                  <h3 data-i18n="multiplayer_title">Play Together</h3>
-                  <button id="onlinePanelButton" type="button" class="secondary-button">Online Lobby</button>
-                  <button id="onlineConnectButton" type="button" class="secondary-button">Connect</button>
-                  <p id="onlineStatus" class="multiplayer-status">Offline</p>
-                  <section class="online-panel hidden" id="onlinePanel" aria-label="Online lobby panel">
-                    <div class="online-topbar">
-                      <div class="online-self" id="onlineSelfLabel">Not connected</div>
-                      <button id="onlineDisconnectButton" type="button" class="secondary-button">Disconnect</button>
-                    </div>
-                    <div class="online-columns">
-                      <section class="online-box" aria-label="Rooms">
-                        <div class="online-head">
-                          <h4>Rooms</h4>
-                          <button id="onlineRefreshRoomsButton" type="button" class="secondary-button">Refresh</button>
-                        </div>
-                        <div class="online-create">
-                          <input id="onlineRoomNameInput" type="text" maxlength="24" placeholder="Room name" autocomplete="off">
-                          <select id="onlineRoomVisibilitySelect" aria-label="Room visibility">
-                            <option value="public">Public</option>
-                            <option value="friends">Friends-only</option>
-                            <option value="private">Private</option>
-                          </select>
-                          <select id="onlineRoomMaxSelect" aria-label="Max players">
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4" selected>4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                          </select>
-                          <button id="onlineCreateRoomButton" type="button">Create</button>
-                        </div>
-                        <div class="online-list" id="onlineRoomsList"></div>
-                      </section>
-                      <section class="online-box" aria-label="Friends">
-                        <div class="online-head">
-                          <h4>Friends</h4>
-                        </div>
-                        <div class="online-create">
-                          <input id="onlineFriendNicknameInput" type="text" maxlength="20" placeholder="Friend nickname" autocomplete="off">
-                          <button id="onlineFriendRequestButton" type="button">Add</button>
-                        </div>
-                        <div class="online-list" id="onlineFriendsList"></div>
-                        <div class="online-list" id="onlineFriendRequestsList"></div>
-                        <div class="online-list" id="onlineInvitesList"></div>
-                      </section>
-                    </div>
-                    <section class="online-room hidden" id="onlineRoomPanel" aria-label="Current room">
-                      <div class="online-head">
-                        <h4 id="onlineRoomTitle">Room</h4>
-                        <div class="online-room-actions">
-                          <button id="onlineReadyButton" type="button" class="secondary-button">Ready</button>
-                          <button id="onlineStartButton" type="button" class="secondary-button">Start</button>
-                          <button id="onlineLeaveRoomButton" type="button" class="secondary-button">Leave</button>
-                        </div>
-                      </div>
-                      <div class="online-room-meta" id="onlineRoomMeta"></div>
-                      <div class="online-list" id="onlineRoomPlayersList"></div>
-                    </section>
-                  </section>
-                </div>
-                <div class="lobby-section">
-                  <h3 data-i18n="stage_select_title">Stage Select</h3>
-                  <p id="stageLockText">Stage 1 is ready. Clear stages to unlock the next route.</p>
-                  <label class="option" for="stageSelect">
-                    <span data-i18n="stage_label">Stage</span>
-                    <select id="stageSelect">
-                      <option value="0">Stage 1 - Sun Meadow</option>
-                      <option value="1">Stage 2 - Crystal Canopy</option>
-                      <option value="2">Stage 3 - Ember Skyline</option>
-                      <option value="3">Stage 4 - Neon Arcade</option>
-                      <option value="4">Stage 5 - Clockwork Factory</option>
-                      <option value="5">Stage 6 - Frozen Relay</option>
-                      <option value="6">Stage 7 - Storm Grove</option>
-                      <option value="7">Stage 8 - Monkey Jungle</option>
-                    </select>
-                  </label>
-                </div>
-                <div class="lobby-section">
-                  <h3 data-i18n="settings_title">Settings</h3>
-                  <label class="option" for="difficultySelect">
-                    <span data-i18n="difficulty_label">Difficulty</span>
-                    <select id="difficultySelect">
-                      <option value="easy">Easy</option>
-                      <option value="normal" selected>Normal</option>
-                      <option value="hard">Hard</option>
-                    </select>
-                  </label>
-                  <label class="option" for="screenModeSelect">
-                    <span data-i18n="screen_label">Screen</span>
-                    <select id="screenModeSelect">
-                      <option value="fullscreen" selected>Fullscreen</option>
-                      <option value="classic">Classic</option>
-                    </select>
-                  </label>
-                  <label class="option" for="controlModeSelect">
-                    <span data-i18n="control_mode_label">Controls</span>
-                    <select id="controlModeSelect">
-                      <option value="desktop" selected>Computer</option>
-                      <option value="mobile">Mobile</option>
-                    </select>
-                  </label>
-                  <button id="muteButton" type="button">Mute: Off</button>
-                  <div class="bgm-controls">
-                    <button id="bgmToggleButton" type="button">BGM: On</button>
-                    <label class="option bgm-volume" for="bgmVolumeSlider">
-                      <span data-i18n="bgm_volume_label">BGM Volume</span>
-                      <input id="bgmVolumeSlider" type="range" min="0" max="100" value="70">
-                      <span id="bgmVolumeValue">70%</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </section>
-            <div class="lobby-divider"></div>
-            <div class="shop-shell" id="shopPanel">
-              <div class="shop-copy">
-                <p class="eyebrow" data-i18n="collection_eyebrow">Collection</p>
-                <h3 data-i18n="collection_title">Characters & Skins</h3>
-                <p id="shopStatus">Every account can open this collection. New accounts start with Starling and the Classic skin.</p>
-              </div>
-              <div class="shop-toolbar">
-                <div class="coin-balance" id="coinBalance">Coins: 0</div>
-                <div class="season-badge" id="shopSeasonBadge">LIMITED season ready</div>
-              </div>
-              <section class="storefront-panel">
-                <div class="storefront-head">
-                  <h4 data-i18n="shop_heading">Shop</h4>
-                  <div class="shop-tabs" role="tablist" aria-label="Shop tabs">
-                    <button id="shopTabCharacters" type="button" class="shop-tab active" aria-pressed="true" data-i18n="characters_tab">Characters</button>
-                    <button id="shopTabBoxes" type="button" class="shop-tab" aria-pressed="false" data-i18n="boxes_tab">Boxes</button>
-                  </div>
-                </div>
-                <div class="storefront-list" id="shopCatalogList"></div>
-              </section>
-              <div class="collection-grid">
-                <section class="collection-panel">
-                  <div class="collection-head">
-                    <h4 data-i18n="characters_tab">Characters</h4>
-                    <span id="equippedCharacterBadge">Equipped: Starling</span>
-                  </div>
-                  <div class="collection-list" id="characterCollection"></div>
-                </section>
-                <section class="collection-panel">
-                  <div class="collection-head">
-                    <h4 data-i18n="skins_tab">Skins</h4>
-                    <span id="equippedSkinBadge">Equipped: Classic</span>
-                  </div>
-                  <div class="collection-list" id="skinCollection"></div>
-                </section>
-              </div>
-            </div>
-            <section class="lootbox-panel hidden" id="lootboxPanel">
-              <div class="lootbox-stage" id="lootboxStage">
-                <div class="lootbox-box" id="lootboxBox"></div>
-                <p class="lootbox-stage-text" id="lootboxStageText">상자가 열리는 중...</p>
-              </div>
-              <div class="lootbox-results hidden" id="lootboxResults">
-                <div class="patch-notes-head">
-                  <div>
-                    <p class="eyebrow" data-i18n="lootbox_result_eyebrow">Boxes</p>
-                    <h3 data-i18n="lootbox_result_title">Opening Results</h3>
-                  </div>
-                  <button id="closeLootboxButton" type="button" data-i18n="lootbox_confirm">Confirm</button>
-                </div>
-                <p class="lobby-copy" id="lootboxSummary">결과를 확인하세요.</p>
-                <div class="lootbox-result-grid" id="lootboxResultGrid"></div>
-              </div>
-            </section>
+
+        <section class="lobby-panel" id="lobbyPanel">
+          <div class="lobby-copy">
+            <strong>로비</strong>
+            <span>AI를 추가하거나 오른쪽 친구 목록에서 친구를 초대해 참가자를 채우세요.</span>
+          </div>
+          <div class="lobby-actions">
+            <button type="button" id="addAiButton">AI 추가</button>
+            <span id="lobbyCount">1 / 10</span>
           </div>
         </section>
+
+        <section class="vote-panel" id="votePanel" hidden>
+          <div class="vote-copy">
+            <strong>시장 투표 단계</strong>
+            <span>본인에게는 투표할 수 없습니다. 시장은 동률 상황에서 기준 패를 결정합니다.</span>
+          </div>
+          <div class="vote-grid" id="voteGrid" aria-label="시장 후보"></div>
+        </section>
+
+        <section class="secret-panel" id="secretPanel">
+          <div class="secret-title" id="secretTitle">비밀 후계자</div>
+          <div class="secret-text" id="secretText">비밀 후계자 지정 전입니다.</div>
+        </section>
+
+        <section class="successor-panel" id="successorPanel" hidden>
+          <div class="vote-copy">
+            <strong>비밀 후계자 지정</strong>
+            <span id="successorHint">후계자로 지정할 생존자 2명을 선택하세요.</span>
+          </div>
+          <div class="vote-grid" id="successorGrid" aria-label="후계자 후보"></div>
+          <button type="button" id="confirmSuccessorsButton" class="primary-action">후계자 확정</button>
+        </section>
+
+        <section class="inspector-panel" id="inspectorPanel" hidden>
+          <div class="vote-copy">
+            <strong>암행어사 권한</strong>
+            <span id="inspectorHint">비밀 후계자로 의심되는 플레이어 1명을 선택하세요.</span>
+          </div>
+          <div class="vote-grid" id="inspectorGrid" aria-label="암행어사 탈락 대상"></div>
+        </section>
+
+        <section class="choice-panel" id="choicePanel">
+          <div class="choice-grid" id="choiceGrid" aria-label="가위바위보 선택"></div>
+
+          <div class="battle-strip">
+            <div class="battle-slot" id="playerPick">
+              <span class="slot-label">나의 선택</span>
+              <span class="slot-symbol">?</span>
+            </div>
+            <div class="versus">기준</div>
+            <div class="battle-slot" id="basePick">
+              <span class="slot-label">기준 패</span>
+              <span class="slot-symbol">?</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="result-banner" id="resultBanner">
+          시작 버튼을 누르면 시장 투표 후 생존전이 시작됩니다.
+        </div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="panel-head compact">
+          <div>
+            <span class="eyebrow">참가자</span>
+            <h2>생존 현황</h2>
+          </div>
+        </div>
+        <div class="player-grid" id="playerGrid"></div>
+
+        <section class="friend-panel" aria-label="친구 목록">
+          <div class="panel-head compact friend-head">
+            <div>
+              <span class="eyebrow">친구</span>
+              <h2>친구 목록</h2>
+            </div>
+          </div>
+          <form class="friend-form" id="friendForm">
+            <label class="sr-only" for="friendInput">친구 이름</label>
+            <input id="friendInput" maxlength="16" autocomplete="off" placeholder="친구 이름" />
+            <button type="submit">추가</button>
+          </form>
+          <div class="friend-list" id="friendList"></div>
+        </section>
+      </aside>
+    </section>
+
+    <section class="log-box">
+      <div class="panel-head compact">
+        <div>
+          <span class="eyebrow">기록</span>
+          <h2>전투 로그</h2>
+        </div>
       </div>
-      <div class="footer-row">
-        <p data-i18n="footer_copy">Collect sun shards, stomp critters, and reach the beacon gate.</p>
-        <button id="lobbyButton" type="button" data-i18n="lobby_button">Lobby</button>
+      <div class="log-list" id="logList"></div>
+    </section>
+
+    <section class="patch-modal" id="patchModal" aria-label="패치노트" role="dialog" aria-modal="true" hidden>
+      <div class="patch-card">
+        <div class="patch-head">
+          <div>
+            <span class="eyebrow">업데이트</span>
+            <h2>패치노트</h2>
+          </div>
+          <button type="button" id="closePatchButton" class="friend-remove" aria-label="패치노트 닫기">×</button>
+        </div>
+        <div class="patch-version">v0.7 암행어사 색출 업데이트</div>
+        <ul class="patch-list">
+          <li>암행어사가 비밀 후계자로 의심되는 대상을 선택할 수 있습니다.</li>
+          <li>선택한 대상이 후계자라면 대상이 탈락합니다.</li>
+          <li>선택한 대상이 후계자가 아니라면 암행어사 본인이 탈락합니다.</li>
+          <li>암행어사 권한은 1회만 사용할 수 있습니다.</li>
+          <li>플레이어가 시장이 되면 비밀 후계자를 직접 선택할 수 있습니다.</li>
+          <li>후계자 지정 단계에서 시장 본인은 후보에서 제외됩니다.</li>
+          <li>암행어사는 본인에게만 표시되고 다른 암행어사의 이름은 공개되지 않습니다.</li>
+          <li>로비에서 AI 추가와 친구 초대가 가능해졌습니다.</li>
+          <li>시장 투표, 비밀 후계자, 후계자 결투 시스템이 추가되었습니다.</li>
+          <li>마지막 2인전에서는 시장 권한이 비활성화됩니다.</li>
+          <li>탈락한 플레이어 카드에 큰 X와 탈락 표시가 추가되었습니다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="victory-modal" id="victoryModal" aria-label="승리" role="dialog" aria-modal="true" hidden>
+      <div class="victory-card">
+        <span class="eyebrow">게임 종료</span>
+        <h2 id="victoryTitle">승리</h2>
+        <p id="victoryText">최후의 생존자가 탄생했습니다.</p>
+        <button type="button" id="closeVictoryButton" class="primary-action">확인</button>
       </div>
     </section>
   </main>
+
   <script src="game.js"></script>
 </body>
 </html>

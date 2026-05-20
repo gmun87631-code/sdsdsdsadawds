@@ -1,60 +1,44 @@
-# Starling Sprint
+# Clash Hands
 
-Original retro-inspired 2D side-scrolling platformer built with plain HTML5 Canvas, CSS, and JavaScript.
+A working browser prototype for a server-authoritative multiplayer survival card game based on rock-paper-scissors logic.
 
-## Files
+## Run
 
-- `index.html`: entry page
-- `styles.css`: layout and UI styles
-- `game.js`: game systems, levels, enemies, HUD, audio, and lobby flow
-- `server.js`: local online server for friend rooms and player position sync
-
-## Controls
-
-- `A/D` or `Left/Right`: move
-- `W`, `Up`, or `Space`: jump
-- `Enter`: continue after stage clear
-- `R`: restart
-- `Esc`: open lobby
-
-## Play Locally
-
-For solo offline play, open `index.html` in a browser.
-
-For friend online play, run:
-
-```bash
-node server.js
+```powershell
+npm start
 ```
 
-Then open `http://localhost:3000`. Friends on the same network can join with `http://YOUR_LAN_IP:3000`, enter the same room name in the lobby, and turn `Online` on.
+Open `http://localhost:3000` in one or more browser tabs. The host can add bots from the lobby so the match can be tested without ten human clients.
 
-## Deploy
+## Implemented Prototype Rules
 
-Solo play is static, so it can be deployed directly to:
+- Up to 10 players in a free-for-all survival match.
+- No movement, no board movement, round-based play only.
+- Each alive player draws 3 cards every round.
+- Each alive player locks 1 card during an 8 second selection phase.
+- Server auto-selects a random valid card when time expires.
+- Hidden selections are not sent to clients before reveal.
+- Server validates alive state, card ownership, duplicate locks, and Dodge chaining.
+- Scissors, Rock, Paper, Guard, Pierce, and Dodge are the only cards.
+- Starting lives are 2, with a host-controlled hardcore option.
+- Eliminated players become spectators.
+- Last surviving player wins.
+- Sudden death starts after 6 minutes, sets alive players to 1 life, removes Dodge, weakens Guard, and can activate danger cards after 3 no-elimination rounds.
 
-- GitHub Pages
-- Netlify
-- Vercel
-- Cloudflare Pages
+## Main Systems
 
-No build step is required.
+The prototype keeps the requested systems as explicit classes:
 
-Friend online play needs a Node.js host that can run `server.js` and accept WebSocket connections.
+- `LobbyManager`
+- `MatchManager`
+- `RoundManager`
+- `DeckSystem`
+- `CardDrawSystem`
+- `CardSelectionSystem`
+- `ResultResolver`
+- `PlayerState`
+- `SpectatorSystem`
+- `UIManager`
+- `NetworkManager`
 
-## Quick Deploy Checklist
-
-1. Upload `index.html`, `styles.css`, and `game.js`.
-2. Set the publish directory to the project root.
-3. Use `index.html` as the main entry file.
-4. After deployment, open the public URL and test:
-   - lobby flow
-   - difficulty selection
-   - stage unlocking
-   - audio playback
-   - fullscreen/classic screen mode
-
-## Notes
-
-- The game uses browser audio APIs, so some sound effects may not start until the player interacts with the page.
-- Game progress now persists in `localStorage`, including local account login, unlocked stages, score, and saved progression data between refreshes.
+Configurable gameplay values are grouped in `GAME_CONFIG` at the top of `server.js`.
